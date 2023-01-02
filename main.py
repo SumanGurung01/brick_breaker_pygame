@@ -22,41 +22,44 @@ BRICK_COLORS = [(241,148,138),(195,155,211),(127,179,213),(118,215,196),(247,220
 
 
 # DRAW ON WINDOW WHILE GAME IS ON
-def draw(win,paddle,bricks,ball,chance):
+def draw(win,paddle,bricks,ball,lives):
     win.fill((0,0,0))
     
-    score_text = SCORE_FONT.render(f"Lives : {chance}", 1 , (255,255,255))
-    
     for brick in bricks:
-        brick.draw(win)
+        brick_sprite = pygame.transform.scale(brick.image , (100,20))
+        win.blit(brick_sprite , (brick.x , brick.y))
 
-    paddle.draw(win)
+    for life in lives:
+        life_sprite = pygame.transform.scale(life.image , (30,30))
+        win.blit(life_sprite , (life.x , life.y))
+
+    paddle_sprite = pygame.transform.scale(paddle.image , (150,15))
+    win.blit(paddle_sprite , (paddle.x , paddle.y))
     
-    win.blit(score_text,(WIN_WIDTH//2-30, WIN_HEIGHT//2))
     
-    ball.draw(win)   
-    
+    ball_sprite = pygame.transform.scale(ball.image , (20,20))
+    win.blit(ball_sprite, (ball.x,ball.y))
+
     pygame.display.update()
-
 
 
 # BALL MOVEMENTS
 def handle_ball_movement(ball,paddle,bricks):
     # left window
-    if ball.x + ball.radius > WIN_WIDTH:
+    if ball.x + 2*ball.radius > WIN_WIDTH:
         ball.x_vel *= -1  
     # right window
-    if ball.x - ball.radius < 0:
+    if ball.x < 0:
         ball.x_vel *= -1
     
     # top window
-    if ball.y-ball.radius <= 0:
+    if ball.y<= 0:
         ball.y_vel = 3
 
     # paddle
-    if ball.y + ball.radius >= paddle.y:
-        if ball.x >= paddle.x and ball.x <= paddle.x+paddle.width: 
-            if (ball.x>paddle.x and ball.x<paddle.x+(paddle.width//3)) or ( ball.x>paddle.x+(paddle.width*2//3) and ball.x<paddle.x + paddle.width):
+    if ball.y + 2*ball.radius >= paddle.y:
+        if ball.x+ball.radius >= paddle.x and ball.x+ball.radius <= paddle.x+paddle.width: 
+            if (ball.x + ball.radius > paddle.x and ball.x+ball.radius < paddle.x+(paddle.width//3)) or ( ball.x + ball.radius > paddle.x+(paddle.width*2//3) and ball.x + ball.radius < paddle.x + paddle.width):
                 if ball.x_vel>0:
                     ball.x_vel = 6     
                 else:
@@ -70,14 +73,14 @@ def handle_ball_movement(ball,paddle,bricks):
 
     # brick
     for i , brick in enumerate(bricks , start=0):
-        if ball.y-ball.radius >= brick.y and ball.y+ball.radius <= brick.y+brick.height: 
-            if ball.x-ball.radius <= brick.x+brick.width:
+        if ball.y + ball.radius >= brick.y and ball.y+ball.radius <= brick.y+brick.height: 
+            if ball.x <= brick.x+brick.width:
                 ball.x_vel = 3
-            if ball.x+ball.radius >= brick.x:
+            if ball.x+ 2*ball.radius >= brick.x:
                 ball.x_vel = -3
         
-        if ball.y-ball.radius <= brick.y+brick.height:
-            if ball.x >= brick.x and ball.x <= brick.x+brick.width:
+        if ball.y <= brick.y+brick.height:
+            if ball.x+ball.radius >= brick.x and ball.x+ball.radius <= brick.x+brick.width:
                 ball.y_vel = 3
                 bricks.pop(i)       
     
@@ -94,28 +97,22 @@ def handle_paddle_movement(keys,paddle):
 
 # BRICK CLASS
 class Brick:
-    def __init__(self , x,y,width,height,color):
+    def __init__(self,x,y):
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
-    
-    def draw(self,win):
-        pygame.draw.rect(win , self.color , (self.x,self.y,self.width,self.height))
-
+        self.width = 100
+        self.height = 20
+        self.image = pygame.image.load(f"sprite/brick{random.randrange(1,9)}.png")
 
 # PADDLE CLASS
 class Paddle:
-    PADDLE_COLOR = (245,233,54)
-    def __init__(self , x,y,width,height):
+    
+    def __init__(self , x,y):
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
-    
-    def draw(self,win):
-        pygame.draw.rect(win , self.PADDLE_COLOR , (self.x,self.y,self.width,self.height))
+        self.width = 150
+        self.height = 15
+        self.image = self.image = pygame.image.load("sprite/paddle.png")
 
     def move(self, left = True):
         if left:
@@ -126,21 +123,18 @@ class Paddle:
 
 # BALL CLASS
 class Ball:
-    BALL_COLOR = (250,250,250)
-    def __init__(self,x,y,radius):
+    def __init__(self,x,y):
         self.x = x
         self.y = y
-        self.radius = radius
         self.x_vel = 3
         self.y_vel = 3
+        self.image = pygame.image.load("sprite/ball.png")
+        self.radius = 10
 
-    def draw(self,win):
-        pygame.draw.circle(win,self.BALL_COLOR ,(self.x , self.y), self.radius)
 
     def move(self):
         self.x += self.x_vel
         self.y += self.y_vel
-
 
 
 # RESET 
@@ -161,29 +155,43 @@ def gameover(win , won):
     pygame.display.update()
 
 
+class Lives:    
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+        self.image = pygame.image.load("sprite/life.png")
+
+
 # MAIN
 def main():
 
     clock = pygame.time.Clock()
     run = True 
-    lives = 3
-    x_loc , y_loc = 0,0
+    
+    lives = []
 
+    for i in range(3):
+        life = Lives(WIN_WIDTH//2 + 30*i - 50, WIN_HEIGHT//2)
+        lives.append(life)
+
+    x_loc , y_loc = 0,0
     # BRICKS 
     bricks = []
     for i in range(0,3):
         y_loc = i*20
         for j in range(0,7):
-            brick = Brick(x_loc , y_loc , 100 , 20 , BRICK_COLORS[random.randrange(0,12)])
+            brick = Brick(x_loc , y_loc)
             bricks.append(brick)
             x_loc+=100
         x_loc = 0
     
     #PADDLE
-    paddle = Paddle(WIN_WIDTH//2 - 150//2 ,685,150,15)
+    paddle = Paddle(WIN_WIDTH//2 - 150//2 ,685)
 
     # BALL
-    ball = Ball(WIN_WIDTH//2 , WIN_HEIGHT//2 , 10)
+    ball = Ball(WIN_WIDTH//2 , WIN_HEIGHT//2)
+
+    cancel = 0
 
     while run:
         clock.tick(60)
@@ -192,6 +200,7 @@ def main():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                cancel = 1
                 run = False
 
         keys = pygame.key.get_pressed() 
@@ -200,23 +209,27 @@ def main():
         handle_ball_movement(ball,paddle,bricks)
 
         if ball.y+ball.radius >= WIN_HEIGHT:
-            lives-=1
+            lives.pop(len(lives)-1)
             reset(ball,paddle)
         
-        if lives == 0 or len(bricks) == 0:
+        if len(lives) == 0 or len(bricks) == 0:
             run = False
     
-    run = True  
-    while run:
-        if lives == 0:
-            gameover(WIN , 0)
-        else:
-            gameover(WIN , 1)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-
-    pygame.quit()
+    if cancel == 1:
+         pygame.quit()
+    else:
+        run = True  
+        while run:
+            if len(lives) == 0:
+                gameover(WIN , 0)
+            else:
+                gameover(WIN , 1)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+         
+        pygame.quit()
+   
 
 
 if __name__=="__main__":
