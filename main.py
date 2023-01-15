@@ -112,7 +112,7 @@ class Paddle:
         self.y = y
         self.width = 150
         self.height = 15
-        self.image = self.image = pygame.image.load("sprite/paddle.png")
+        self.image = pygame.image.load("sprite/paddle.png")
 
     def move(self, left = True):
         if left:
